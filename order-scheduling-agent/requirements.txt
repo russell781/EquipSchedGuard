@@ -1,0 +1,9 @@
+# 项目依赖（Python 3.11+）
+fastapi>=0.110          # Web 框架
+uvicorn[standard]       # ASGI 服务器
+aiosqlite>=0.20         # SQLite 异步驱动
+httpx>=0.27             # 异步 HTTP 客户端（调用大模型 API）
+PyJWT>=2.8              # JWT 登录令牌
+jinja2>=3.1             # 服务端渲染模板（管理后台）
+python-multipart>=0.0.9 # 文件上传（multipart 表单）
+pypdf>=4.0              # PDF 文本提取（制度文档上传）

@@ -69,6 +69,20 @@ def set_cell_text(cell, text, bold=False, size=10, color=None, align='left', nam
 def set_borders(table, color="1F4E79", sz=6):
     tbl = table._tbl
     tblPr = tbl.tblPr
+    # 不依赖命名样式；固定布局 + 明确表格宽度(dxa) + 等宽列，确保腾讯文档/WPS 显示单元格文字
+    layout = tblPr.find(qn('w:tblLayout'))
+    if layout is None:
+        layout = OxmlElement('w:tblLayout'); tblPr.append(layout)
+    layout.set(qn('w:type'), 'fixed')
+    ncol = len(table.columns)
+    tw = int(15.0 * 567)  # 15cm 内容宽(dxa)
+    tblW = tblPr.find(qn('w:tblW'))
+    if tblW is None:
+        tblW = OxmlElement('w:tblW'); tblPr.append(tblW)
+    tblW.set(qn('w:type'), 'dxa'); tblW.set(qn('w:w'), str(tw))
+    for r in table.rows:
+        for c in r.cells:
+            c.width = Cm(15.0 / ncol)
     borders = OxmlElement('w:tblBorders')
     for edge in ('top','left','bottom','right','insideH','insideV'):
         e = OxmlElement(f'w:{edge}')

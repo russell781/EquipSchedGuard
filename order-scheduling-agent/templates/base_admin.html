@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>{% block title %}管理后台{% endblock %} · 订单排产与设备异常智能体</title>
+<style>
+  /* ===== SaaS 风格后台布局：左侧深色导航 + 顶部栏 + 内容区 ===== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", sans-serif; background: #f3f5f9; display: flex; min-height: 100vh; }
+  .sidebar { width: 216px; background: #16264a; color: #c6cfdf; display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; }
+  .brand { padding: 20px 18px; color: #fff; font-size: 15px; font-weight: 600; line-height: 1.5; border-bottom: 1px solid #ffffff14; }
+  .brand small { display: block; font-size: 11px; color: #8fa0bd; font-weight: 400; margin-top: 3px; }
+  .nav { flex: 1; padding: 14px 0; }
+  .nav a { display: block; padding: 12px 20px; color: #c6cfdf; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+  .nav a:hover { background: #ffffff0a; color: #fff; }
+  .nav a.on { background: #1f3864; color: #fff; border-left-color: #6ea8fe; }
+  .sidebar .foot { padding: 16px 20px; font-size: 12px; border-top: 1px solid #ffffff14; }
+  .sidebar .foot a { color: #8fa0bd; text-decoration: none; display: block; margin-top: 6px; }
+  .main { flex: 1; margin-left: 216px; }
+  .topbar { background: #fff; padding: 15px 28px; border-bottom: 1px solid #e6eaf1; display: flex; justify-content: space-between; align-items: center; }
+  .topbar .crumb { font-size: 15px; color: #1f3864; font-weight: 600; }
+  .topbar .who { font-size: 13px; color: #778; }
+  .content { padding: 24px 28px; }
+  .card { background: #fff; border: 1px solid #e6eaf1; border-radius: 10px; padding: 20px 22px; margin-bottom: 20px; }
+  .card h3 { font-size: 15px; color: #1f3864; margin-bottom: 14px; }
+
+  /* 通用组件 */
+  .btn { background: #1f3864; color: #fff; border: none; border-radius: 6px; padding: 8px 18px; font-size: 13px; cursor: pointer; }
+  .btn:disabled { background: #9aa7bd; }
+  .btn.light { background: #eef2f9; color: #1f3864; border: 1px solid #d5deeb; }
+  .btn.danger { background: #c0392b; }
+  table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.grid th { background: #f5f7fb; color: #556; text-align: left; padding: 10px 12px; border-bottom: 2px solid #e6eaf1; font-weight: 600; }
+  table.grid td { padding: 10px 12px; border-bottom: 1px solid #eef1f6; color: #334; }
+  .tag { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 12px; background: #eef2f9; color: #1f3864; }
+  .tag.red { background: #fdecea; color: #c0392b; }
+  .tag.green { background: #e8f6ee; color: #1e8e5a; }
+  input[type=text], input[type=date], input[type=password], select, textarea {
+    border: 1px solid #d4dae3; border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; }
+  textarea { width: 100%; resize: vertical; line-height: 1.7; }
+  .muted { color: #99a; font-size: 12px; }
+  .err-toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); background: #c0392b; color: #fff; padding: 10px 22px; border-radius: 6px; font-size: 14px; display: none; z-index: 100; }
+  .ok-toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); background: #1e8e5a; color: #fff; padding: 10px 22px; border-radius: 6px; font-size: 14px; display: none; z-index: 100; }
+</style>
+</head>
+<body>
+
+<!-- 左侧导航 -->
+<nav class="sidebar">
+  <div class="brand">订单排产与设备异常<br>智能体系统<small>管理后台 Console</small></div>
+  <div class="nav">
+    <a href="/admin" class="{{ 'on' if active == 'dashboard' else '' }}">📊 概览</a>
+    <a href="/admin/kb" class="{{ 'on' if active == 'kb' else '' }}">📚 制度知识库</a>
+    <a href="/admin/prompts" class="{{ 'on' if active == 'prompts' else '' }}">📝 提示词模板</a>
+    <a href="/admin/audit" class="{{ 'on' if active == 'audit' else '' }}">🔍 对话审计</a>
+  </div>
+  <div class="foot">
+    {{ user.display_name }}（管理员）
+    <a href="/">→ 前往员工问答页</a>
+    <a href="#" onclick="logout();return false;">退出登录</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">{% block crumb %}{% endblock %}</div>
+    <div class="who">{{ user.display_name }} · 管理员</div>
+  </div>
+  <div class="content">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<div class="err-toast" id="errToast"></div>
+<div class="ok-toast" id="okToast"></div>
+
+<script>
+/* ===== 公共 JS：接口封装与提示（管理端走 Cookie 鉴权，同源自动携带） ===== */
+async function api(path, options = {}) {
+  options.headers = Object.assign({"Content-Type": "application/json"}, options.headers || {});
+  const resp = await fetch("/api/v1" + path, options);
+  if (resp.status === 401) { location.href = "/login"; throw new Error("登录已过期"); }
+  return resp;
+}
+function toast(id, msg) {
+  const t = document.getElementById(id);
+  t.textContent = msg; t.style.display = "block";
+  setTimeout(() => t.style.display = "none", 2500);
+}
+const showError = m => toast("errToast", m);
+const showOk = m => toast("okToast", m);
+function logout() {
+  document.cookie = "token=; Max-Age=0; path=/";
+  localStorage.removeItem("token");
+  location.href = "/login";
+}
+// HTML 转义，防止历史消息等内容注入
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g,
+    c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+</script>
+{% block script %}{% endblock %}
+</body>
+</html>
