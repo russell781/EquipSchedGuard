@@ -1,0 +1,68 @@
+{% extends "base_admin.html" %}
+{% block title %}当日计划{% endblock %}
+{% block crumb %}当日计划 · 已生效排产版本{% endblock %}
+{% block content %}
+<style>
+  .plan-items { margin: 8px 0 0; padding-left: 0; list-style: none; }
+  .plan-items li { background: #f5f7fb; border-radius: 6px; padding: 6px 10px; margin-bottom: 4px; font-size: 12px; color: #445; }
+  .empty { text-align: center; color: #99a; padding: 30px 0; }
+</style>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <h3 style="margin:0;">已生效的当日计划</h3>
+    <button class="btn light" onclick="load()">刷新</button>
+  </div>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>计划号</th>
+        <th>计划日期</th>
+        <th>排产明细</th>
+        <th>策略</th>
+        <th>来源变更单</th>
+        <th>生效时间</th>
+      </tr>
+    </thead>
+    <tbody id="planBody">
+      <tr><td colspan="6" class="muted">加载中…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>说明</h3>
+  <p class="muted" style="line-height:1.8;">
+    本表是「唯一生效版」当日计划，班组只认这一张表。计划由员工发起排产建议、经管理员审批同意后自动生成，
+    全程审计留痕，未经确认的建议不会覆盖任何原记录。
+  </p>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+async function load() {
+  const resp = await api("/agent/daily-plans");
+  const d = await resp.json();
+  const body = document.getElementById("planBody");
+  if (!d.items || !d.items.length) {
+    body.innerHTML = '<tr><td colspan="6" class="empty">暂无已生效的当日计划</td></tr>';
+    return;
+  }
+  body.innerHTML = d.items.map(p => {
+    const items = (p.plan_items || []).map(x =>
+      `<li>订单 ${esc(x.order_id || "-")} · 设备 ${esc(x.equipment_id || "-")} · 数量 ${esc(x.quantity ?? "-")} · ${esc(x.start_at || "")}</li>`
+    ).join("");
+    return `<tr>
+      <td>${esc(p.plan_id)}</td>
+      <td>${esc(p.plan_date)}</td>
+      <td><ul class="plan-items">${items || "<li class='muted'>无明细</li>"}</ul></td>
+      <td>${esc(p.strategy || "-")}</td>
+      <td>${esc(p.change_request_id || "-")}</td>
+      <td>${esc((p.created_at || "").replace("T", " ").slice(0, 19))}</td>
+    </tr>`;
+  }).join("");
+}
+
+load();
+</script>
+{% endblock %}

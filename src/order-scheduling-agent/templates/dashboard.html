@@ -1,0 +1,42 @@
+{% extends "base_admin.html" %}
+{% block title %}概览{% endblock %}
+{% block crumb %}概览 · 系统运行概况{% endblock %}
+{% block content %}
+<style>
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .stat { background: #fff; border: 1px solid #e6eaf1; border-radius: 10px; padding: 18px 20px; }
+  .stat .label { font-size: 13px; color: #889; }
+  .stat .num { font-size: 30px; color: #1f3864; font-weight: 700; margin-top: 8px; }
+</style>
+
+<div class="cards">
+  <div class="stat"><div class="label">制度文档总数</div><div class="num" id="docCount">-</div></div>
+  <div class="stat"><div class="label">今日问答数</div><div class="num" id="todayQa">-</div></div>
+  <div class="stat"><div class="label">疑似违规标记</div><div class="num" id="flagged">-</div></div>
+  <div class="stat"><div class="label">当前提示词版本</div><div class="num" id="promptVer">-</div></div>
+</div>
+
+<div class="card">
+  <h3>近 7 天问答量</h3>
+  <table class="grid">
+    <thead><tr><th>日期</th><th>问答数</th></tr></thead>
+    <tbody id="weekBody"><tr><td colspan="2" class="muted">加载中…</td></tr></tbody>
+  </table>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+// 加载概览统计数据
+(async function () {
+  const resp = await api("/admin/stats");
+  const d = await resp.json();
+  document.getElementById("docCount").textContent = d.doc_count;
+  document.getElementById("todayQa").textContent = d.today_qa;
+  document.getElementById("flagged").textContent = d.flagged_count;
+  document.getElementById("promptVer").textContent = "V" + d.prompt_version;
+  document.getElementById("weekBody").innerHTML = d.week.length
+    ? d.week.map(w => `<tr><td>${esc(w.day)}</td><td>${w.count}</td></tr>`).join("")
+    : '<tr><td colspan="2" class="muted">近 7 天暂无问答</td></tr>';
+})();
+</script>
+{% endblock %}

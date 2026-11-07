@@ -1,6 +1,7 @@
 """知识库存储：文档上传解析、自动切片、离线向量化入库、删除与重建索引。
 
-向量化说明：采用离线 bigram 哈希向量（512 维，L2 归一化），
+向量化说明：采用离线 n-gram（unigram + bigram 加权）哈希向量（512 维，L2 归一化），
+使用 FNV-1a 稳定哈希（跨进程、跨平台结果一致，不依赖 Python 内置 hash 的随机盐），
 无需外部 Embedding 服务即可演示“向量化入库 + 相似度检索”全流程；
 后续若接入真实 Embedding 服务，仅需替换 embed() 并重建索引。
 """
@@ -15,13 +16,33 @@ from .errors import err_doc_not_found, err_pdf_parse
 FILES_DIR = Path(__file__).resolve().parent.parent / "data" / "kb_files"
 VEC_DIM = 512  # 离线向量维度
 
+# n-gram 权重：unigram 保障短问句（如“排产优先级”）与单字术语的召回，
+# bigram 提供词序信息以提升区分度。二者叠加后共同归一化。
+UNIGRAM_WEIGHT = 1.0
+BIGRAM_WEIGHT = 1.5
+
+
+def _fnv1a(s: str) -> int:
+    """FNV-1a 稳定哈希（64 位）：跨进程、跨平台确定性一致。
+
+    替代 Python 内置 hash()（对 str 采用随机盐，进程重启后结果不同），
+    确保“入库向量”与“查询向量”使用同一套哈希桶，检索结果可复现。
+    """
+    h = 0xCBF29CE484222325
+    for ch in s.encode("utf-8"):
+        h ^= ch
+        h = (h * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return h
+
 
 def embed(text: str) -> list[float]:
-    """离线向量化：字符 bigram 哈希到 512 维并做 L2 归一化。"""
+    """离线向量化：unigram + bigram 稳定哈希到 512 维并做 L2 归一化。"""
     text = "".join(text.split())
     vec = [0.0] * VEC_DIM
     for i in range(len(text) - 1):
-        vec[hash(text[i:i + 2]) % VEC_DIM] += 1.0
+        vec[_fnv1a(text[i:i + 2]) % VEC_DIM] += BIGRAM_WEIGHT
+    for ch in text:
+        vec[_fnv1a(ch) % VEC_DIM] += UNIGRAM_WEIGHT
     norm = sum(v * v for v in vec) ** 0.5
     return [v / norm for v in vec] if norm else vec
 

@@ -15,6 +15,11 @@ def use_mock() -> bool:
     return LLM_MOCK == "true"
 
 
+def has_real_llm() -> bool:
+    """是否配置了可用的真实大模型（供决策引擎判断是否走真实决策）。"""
+    return not use_mock() and bool(LLM_API_KEY)
+
+
 async def _mock_stream(messages: list[dict]) -> AsyncGenerator[str, None]:
     """Mock 流式回答：基于制度检索内容拼一段演示文本，分段输出模拟打字效果。"""
     # 系统消息中已注入制度片段，这里简单提取用于演示
@@ -74,4 +79,38 @@ async def stream_chat(messages: list[dict]) -> AsyncGenerator[str, None]:
                         yield delta
     except httpx.HTTPError:
         # 网络层异常（超时、连接失败等）
+        raise err_llm()
+
+
+async def complete_json(messages: list[dict], max_tokens: int = 800) -> dict:
+    """非流式调用：请求模型返回 JSON 对象（用于智能体决策）。
+
+    返回解析后的 dict；任何异常统一抛出大模型错误（50001）。
+    用于决策引擎：模型以结构化 JSON 决定下一步动作，解析失败即报错。
+    """
+    if use_mock():
+        raise err_llm()  # Mock 模式无真实结构化输出，调用方应回退规则引擎
+
+    url = f"{LLM_BASE_URL}/chat/completions"
+    headers = {"Authorization": f"Bearer {LLM_API_KEY}"}
+    payload = {
+        "model": LLM_MODEL,
+        "messages": messages,
+        "stream": False,
+        "response_format": {"type": "json_object"},
+        "max_tokens": max_tokens,
+        "temperature": 0,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code != 200:
+                raise err_llm()
+            data = resp.json()
+            content = data["choices"][0]["message"].get("content", "")
+    except (httpx.HTTPError, KeyError, IndexError, json.JSONDecodeError):
+        raise err_llm()
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
         raise err_llm()

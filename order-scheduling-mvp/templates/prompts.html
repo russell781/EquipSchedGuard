@@ -1,0 +1,70 @@
+{% extends "base_admin.html" %}
+{% block title %}提示词模板{% endblock %}
+{% block crumb %}提示词模板 · 编辑后立即对问答生效{% endblock %}
+{% block content %}
+<div class="card">
+  <h3>当前生效模板 <span class="tag green" id="activeVer"></span></h3>
+  <div class="muted" id="activeMeta" style="margin-bottom:10px;"></div>
+  <pre id="activeContent" style="white-space:pre-wrap;background:#f6f8fc;border-radius:6px;padding:14px;font-size:13px;line-height:1.8;font-family:inherit;"></pre>
+</div>
+
+<div class="card">
+  <h3>编辑为新版本</h3>
+  <textarea id="editor" rows="8" placeholder="输入系统提示词…"></textarea>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+    <span class="muted">支持占位符 <b>{% raw %}{{制度条文}}{% endraw %}</b>（运行时自动替换为检索结果）；保存后立即生效，旧版本保留可回滚</span>
+    <button class="btn" onclick="save()">保存并立即生效</button>
+  </div>
+</div>
+
+<div class="card">
+  <h3>历史版本</h3>
+  <table class="grid">
+    <thead><tr><th>版本</th><th>状态</th><th>修改人</th><th>时间</th><th>内容摘要</th><th>操作</th></tr></thead>
+    <tbody id="verBody"></tbody>
+  </table>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+// 加载当前生效模板与历史版本
+async function loadPrompts() {
+  const a = await (await api("/admin/prompts/active")).json();
+  document.getElementById("activeVer").textContent = "V" + a.version;
+  document.getElementById("activeMeta").textContent =
+    `生效中 · ${a.updater || "系统初始化"} · ${(a.created_at || "").slice(0, 19).replace("T", " ")}`;
+  document.getElementById("activeContent").textContent = a.content;
+  document.getElementById("editor").value = a.content;
+
+  const d = await (await api("/admin/prompts")).json();
+  document.getElementById("verBody").innerHTML = d.items.map(v => `<tr>
+    <td>V${v.version}</td>
+    <td>${v.is_active ? '<span class="tag green">生效中</span>' : '<span class="tag">历史</span>'}</td>
+    <td>${esc(v.updater || "系统")}</td>
+    <td class="muted">${esc((v.created_at || "").slice(0, 19).replace("T", " "))}</td>
+    <td class="muted">${esc(v.content.slice(0, 40))}…</td>
+    <td>${v.is_active ? "-" : `<button class="btn light" onclick="rollback('${v.id}')">回滚到此版本</button>`}</td>
+  </tr>`).join("");
+}
+
+// 保存新版本（立即生效）
+async function save() {
+  const content = document.getElementById("editor").value;
+  const resp = await api("/admin/prompts", { method: "POST", body: JSON.stringify({ content }) });
+  const d = await resp.json();
+  if (!resp.ok) { showError(d.message); return; }
+  showOk(`已保存为 V${d.version} 并立即生效`);
+  loadPrompts();
+}
+
+// 回滚到历史版本
+async function rollback(id) {
+  const resp = await api("/admin/prompts/" + id + "/activate", { method: "POST" });
+  if (!resp.ok) { showError((await resp.json()).message); return; }
+  showOk("已回滚并生效");
+  loadPrompts();
+}
+
+loadPrompts();
+</script>
+{% endblock %}

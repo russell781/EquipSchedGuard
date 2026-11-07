@@ -53,6 +53,18 @@ async def admin_dashboard(request: Request):
     return await _render_admin(request, "dashboard.html", "dashboard")
 
 
+@router.get("/admin/schedule")
+async def admin_schedule(request: Request):
+    """排产审批页（待审批变更单）。"""
+    return await _render_admin(request, "schedule.html", "schedule")
+
+
+@router.get("/admin/plans")
+async def admin_plans(request: Request):
+    """当日计划页（已生效排产版本）。"""
+    return await _render_admin(request, "plans.html", "plans")
+
+
 @router.get("/admin/kb")
 async def admin_kb(request: Request):
     """制度知识库管理页。"""

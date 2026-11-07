@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="docx-page-size" content="A4">
+  <title>星衡精密 · 订单排产与设备异常智能体系统 需求分析方案</title>
+  <style>
+  @page {
+    @bottom-center { content: "第 " counter(page) " 页"; }
+  }
+  @page cover {
+    @bottom-center { content: none; }
+  }
+  section[role="cover"] { page: cover; }
+
+  :root {
+    --fs-h1: 22pt;
+    --fs-h2: 15pt;
+    --fs-h3: 12.5pt;
+    --fs-body: 12pt;
+    --fs-small: 10pt;
+    --ff-heading: "黑体", SimHei, sans-serif;
+    --ff-body: "宋体", SimSun, serif;
+    --lh-body: 1.6;
+    --color-primary: #1a4f8b;
+    --color-text: #000000;
+    --color-muted: #555555;
+    --color-border: #bbbbbb;
+    --color-highlight: #f2f6fb;
+    --color-accent: #1a4f8b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--ff-body); font-size: var(--fs-body); line-height: var(--lh-body); color: var(--color-text); }
+
+  .report-cover {
+    display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+    min-height: 60vh; padding: 2.5cm;
+    background: var(--color-highlight);
+  }
+  .cover-category { font-size: 14pt; font-family: var(--ff-heading); font-weight: 700; color: var(--color-primary); letter-spacing: 0.08em; margin-bottom: 0.8em; }
+  .cover-title { font-size: var(--fs-h1); font-family: var(--ff-heading); font-weight: 700; color: var(--color-primary); margin-bottom: 0.5em; }
+  .cover-subtitle { font-size: 15pt; color: var(--color-muted); margin-bottom: 2em; }
+  .cover-meta { font-size: var(--fs-small); color: var(--color-muted); }
+
+  .doc-toc { padding: 1em 2.5cm; background: #ffffff; border-bottom: 1px solid var(--color-border); }
+  .toc-title { font-weight: 700; margin-bottom: 0.5em; }
+  .toc-list, .toc-list ol, .toc-list ul { list-style: none; list-style-type: none; padding-left: 1.5em; }
+  .toc-list li { margin-bottom: 0.3em; text-indent: 0; }
+  .toc-list a { color: var(--color-primary); text-decoration: none; }
+
+  .executive-summary {
+    margin: 2em 2.5cm;
+    padding: 2em;
+    border-left: 4px solid var(--color-accent);
+    background: var(--color-highlight);
+    border-radius: 0 8px 8px 0;
+  }
+  .summary-header h2 { font-size: var(--fs-h2); font-family: var(--ff-heading); }
+  .summary-body { margin-top: 0.5em; }
+  .summary-body p { margin-bottom: 0.8em; }
+
+  .report-body { padding: 2em 2.5cm; }
+  .report-body h2 { font-size: var(--fs-h2); font-family: var(--ff-heading); font-weight: 700; margin-top: 1.5em; margin-bottom: 0.8em; }
+  .report-body h3 { font-size: var(--fs-h3); font-family: var(--ff-heading); font-weight: 700; margin-top: 1em; margin-bottom: 0.6em; }
+  .report-body p { margin-bottom: 0.8em; text-indent: 2em; }
+  .report-body blockquote { border-left: 3px solid var(--color-accent); padding-left: 1em; margin: 0.8em 0; color: var(--color-muted); text-indent: 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 0.8em 0 1.2em 0; }
+  th, td { border: 1px solid var(--color-border); padding: 6px 10px; text-align: left; font-size: 10.5pt; }
+  th { background: var(--color-highlight); font-family: var(--ff-heading); font-weight: 700; }
+  td { text-indent: 0; }
+
+  ul, ol { margin: 0.5em 0 0.8em 2em; }
+  li { margin-bottom: 0.3em; }
+
+  .appendix { padding: 2em 2.5cm; border-top: 1px solid var(--color-border); }
+  </style>
+</head>
+<body>
+  <section role="cover" class="report-cover">
+    <p class="cover-category">系统需求分析方案</p>
+    <p class="cover-title" style="font-size:22pt;font-family:'黑体',SimHei,sans-serif;font-weight:700;color:#1a4f8b;">星衡精密 · 订单排产与设备异常智能体系统</p>
+    <p class="cover-subtitle">需求分析方案</p>
+    <div class="cover-meta">
+      <p>编制依据：客户简报 · 六人访谈记录 · 产线排产典型事件资料 · 利益相关者资料</p>
+      <p>版本 V1.0 | 2026-11-06</p>
+    </div>
+  </section>
+
+  <section role="body" class="report-body" data-page-restart="1">
+    <nav class="doc-toc" aria-label="文档目录">
+      <p class="toc-title">目录</p>
+      <ol class="toc-list">
+        <li><a href="#s1">一、业务背景与目标</a></li>
+        <li><a href="#s2">二、痛点问题与根因分析</a></li>
+        <li><a href="#s3">三、AI 改造方案与优先级</a></li>
+        <li><a href="#s4">四、需求边界（规格定义）</a></li>
+        <li><a href="#s5">五、验收标准清单</a></li>
+        <li><a href="#s6">六、风险与约束</a></li>
+        <li><a href="#s7">七、结论与下一步</a></li>
+      </ol>
+    </nav>
+
+    <div class="executive-summary">
+      <div class="summary-header"><h2>执行摘要</h2></div>
+      <div class="summary-body">
+        <p>客户的初始诉求是"上 AI 自动排产、提设备利用率"，但六人访谈揭示的真实目标是：<strong>准时交付率从 78% 提升到 92%</strong>，优先保关键客户交期，同时首检合格率不低于 98%。</p>
+        <p>延误根因不在排产算法，而在<strong>排产前置信号缺失</strong>（延误订单 60% 来自缺料、换型 45 分钟未进计划表、设备恢复时长无确定值）与<strong>版本治理缺失</strong>（插单靠微信群、订单工单无映射）。</p>
+        <p>因此本项目定位为"补齐信号 + 唯一日计划版本 + AI 可解释建议 + 人工复核签核"的交付可靠性工程。<strong>AI 只提建议、不直接生效、不控制设备</strong>；质量签核、权限与兜底优先于效率收益。</p>
+      </div>
+    </div>
+
+    <main>
+      <h2 id="s1">一、业务背景与目标</h2>
+
+      <h3>1.1 客户初始诉求</h3>
+      <blockquote>订单越来越多，交期还是经常延误。我们想上 AI 自动排产，把设备利用率提上去。你先到车间跟大家聊聊。</blockquote>
+
+      <h3>1.2 真实业务目标（经访谈澄清后修正）</h3>
+      <p>客户口头诉求是"上 AI 自动排产、提设备利用率"，但访谈揭示的真实目标完全不同：</p>
+      <table>
+        <thead><tr><th>角色</th><th>真实诉求</th><th>关键约束</th></tr></thead>
+        <tbody>
+          <tr><td>厂长 顾明岚</td><td>准时交付率从 78% 提升到 92%，优先保关键客户交期</td><td>设备利用率是结果而非考核指标</td></tr>
+          <tr><td>质量主管 傅景</td><td>准交率提升同时，首检合格率不低于 98%</td><td>有风险否决权</td></tr>
+          <tr><td>销售交付 叶书</td><td>不改报价合同，需交期变更影响清单</td><td>参与交接结果验收</td></tr>
+          <tr><td>计划员 唐映秋</td><td>AI 只能提可解释建议，人工确认后执行</td><td>改承诺交期须销售批准</td></tr>
+          <tr><td>班组长 林亦舟</td><td>排产前必须有料、换型、设备三信号</td><td>不能重复登录多系统</td></tr>
+          <tr><td>MES 工程师 秦芮</td><td>数据可读，设备控制 PLC 不在接口范围</td><td>禁止自动下发设备动作</td></tr>
+        </tbody>
+      </table>
+      <p><strong>核心结论</strong>：项目本质不是"AI 排产算法优化"，而是"补齐排产前置信号 + 建立唯一日计划版本 + AI 可解释建议 + 人工复核签核"的交付可靠性提升工程。直接追求设备满负荷反而与"先保关键客户交期"的目标相冲突。</p>
+
+      <h3>1.3 试点边界</h3>
+      <ul>
+        <li>试点产线：CNC 三号线，仅覆盖标准工单</li>
+        <li>试点方式：先历史回放、再并行试点（4 周），不直接关停现有人工流程</li>
+        <li>试点预算：24 万元（须扣除接口、培训、复核、维护四项成本，既有系统采购不纳入节省额）</li>
+      </ul>
+
+      <h2 id="s2">二、痛点问题与根因分析</h2>
+
+      <h3>2.1 量化痛点</h3>
+      <table>
+        <thead><tr><th>痛点</th><th>量化数据</th><th>依据</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td>交付延误主因是缺料</td><td>延误订单 60% 来自缺料</td><td>f51</td><td>待统计样本验证</td></tr>
+          <tr><td>等料时间被当作可排产能</td><td>三号线日均停机 70 分钟，其中 40 分钟是等料（57.1%）</td><td>f12</td><td>受访者提供</td></tr>
+          <tr><td>换型时长不在计划表</td><td>单次换型平均 45 分钟，计划表不记录</td><td>f10</td><td>受访者提供平均值</td></tr>
+          <tr><td>设备恢复时间无确定值</td><td>报警后恢复时长无法预判</td><td>f11</td><td>待核实</td></tr>
+          <tr><td>插单靠微信群，版本不一致</td><td>计划每天上午一版，下午插单靠微信群</td><td>f01</td><td>受访者确认</td></tr>
+          <tr><td>异常原因不进系统字段</td><td>插单/缺料/换型/首检未过，先群聊后补录</td><td>f14</td><td>受访者确认</td></tr>
+          <tr><td>订单工单无映射表</td><td>ERP 订单号 ≠ MES 工单号，一单拆多工单</td><td>f30</td><td>受访者确认</td></tr>
+          <tr><td>优先级语义个人化</td><td>"红色"=已催单两次，仅计划员知道</td><td>f21</td><td>受访者确认</td></tr>
+        </tbody>
+      </table>
+
+      <h3>2.2 四类核心问题（按影响排序）</h3>
+      <ol>
+        <li><strong>等料时间被计作可排产能</strong>：缺料订单与齐套订单在计划表中无区分，把等待时间当可用工时，导致"计划看着满，现场跑不动"。这是产能测算可信度的根本问题。</li>
+        <li><strong>换型时长不在计划表内</strong>：班组长需按经验自行加时，加多加少靠个人判断，换型频繁的日子偏差更大。</li>
+        <li><strong>设备恢复时间没有确定值</strong>：排产环节拿不到报警恢复时长，与缺料并列"排进去也跑不动"的两类原因。</li>
+        <li><strong>异常原因不进系统字段</strong>：四类异常靠群聊和个人表承接，造成"现场盯守 + 翻群聊找依据 + 交接口头核对"三段重复劳动。</li>
+      </ol>
+
+      <h3>2.3 根因定位</h3>
+      <p>问题根因不在"机器排序算法"，而在排产前置信号缺失与版本治理缺失：</p>
+      <ul>
+        <li>信号缺失：物料就绪、换型时长、设备状态三个排产前置信号未结构化采集</li>
+        <li>版本缺失：无唯一日计划版本，插单靠微信群，执行版本不一致</li>
+        <li>映射缺失：订单与工单无稳定关联，无法按订单归因交期</li>
+        <li>治理缺失：异常原因不进系统字段，交接靠口头，责任边界模糊</li>
+      </ul>
+
+      <h2 id="s3">三、AI 改造方案与优先级</h2>
+
+      <h3>3.1 改造总原则</h3>
+      <p>AI 在系统中只承担理解、解释、建议三类能力，不直接控制设备、不直接修改正式计划、不跳过审批。所有不可逆动作（计划生效、设备动作、承诺交期变更）均须经过确定性校验与人工签核。</p>
+
+      <h3>3.2 AI 改造点清单</h3>
+      <table>
+        <thead><tr><th>编号</th><th>AI 改造点</th><th>解决的痛点</th><th>前置条件</th><th>优先级</th></tr></thead>
+        <tbody>
+          <tr><td>AI-1</td><td>排产建议生成（约束可解释）</td><td>排产依据不透明</td><td>订单工单映射、物料/换型/设备信号就绪</td><td>P0</td></tr>
+          <tr><td>AI-2</td><td>插单影响评估与留痕</td><td>插单挤单无依据、版本不一致</td><td>唯一日计划版本</td><td>P0</td></tr>
+          <tr><td>AI-3</td><td>缺料/换型/设备异常信号归集与提示</td><td>信号缺失、等料误排</td><td>数据基线补齐</td><td>P0</td></tr>
+          <tr><td>AI-4</td><td>交期变更影响清单自动生成</td><td>交期变更说不清影响</td><td>订单工单映射</td><td>P1</td></tr>
+          <tr><td>AI-5</td><td>异常归因与兜底转人工触发</td><td>兜底无接手人、时限</td><td>兜底场景清单</td><td>P1</td></tr>
+          <tr><td>AI-6</td><td>每周复盘误判分析辅助</td><td>规则更新无依据</td><td>历史回放数据</td><td>P2</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.3 优先级排序与理由</h3>
+      <p>优先级按"价值 × 可拦截性 × 可恢复性"排序，并结合访谈揭示的依赖关系：</p>
+
+      <h3 style="font-size:11.5pt;">P0（首期试点必须落地）</h3>
+      <table>
+        <thead><tr><th>序号</th><th>需求</th><th>理由</th></tr></thead>
+        <tbody>
+          <tr><td>P0-1</td><td>订单与工单映射（数据前置）</td><td>缺失则无法按订单归因交期，是所有 AI 能力的地基</td></tr>
+          <tr><td>P0-2</td><td>唯一日计划版本 + 插单留痕</td><td>版本统一是 AI 建议可解释的前提</td></tr>
+          <tr><td>P0-3</td><td>物料就绪 + 换型 + 设备状态三信号采集</td><td>直接解决 60% 缺料延误与等料误排</td></tr>
+          <tr><td>P0-4</td><td>AI 只提可解释建议 + 人工复核 + 质量签核</td><td>不可逆风险控制，傅景有权否决</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="font-size:11.5pt;">P1（并行试点阶段）</h3>
+      <table>
+        <thead><tr><th>序号</th><th>需求</th><th>理由</th></tr></thead>
+        <tbody>
+          <tr><td>P1-1</td><td>兜底转人工（接手人、时限、记录位置）</td><td>失败控制，需先梳理兜底场景清单</td></tr>
+          <tr><td>P1-2</td><td>交期变更影响清单 + 准交率口径固定</td><td>销售交付需求，口径须业务负责人书面固定</td></tr>
+          <tr><td>P1-3</td><td>历史回放验证（按缺料/换型/设备/插单归因）</td><td>验证 60% 缺料假设，校准优先级</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="font-size:11.5pt;">P2（试点后评估）</h3>
+      <table>
+        <thead><tr><th>序号</th><th>需求</th><th>理由</th></tr></thead>
+        <tbody>
+          <tr><td>P2-1</td><td>周复盘误判分析</td><td>需试点数据积累后才有价值</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s4">四、需求边界（规格定义）</h2>
+
+      <h3>4.1 范围内（In Scope）</h3>
+      <ul>
+        <li>只读核对与人工交接；AI 生成可解释排产建议</li>
+        <li>覆盖 CNC 三号线标准工单的排产、插单、缺料、换型、设备异常场景</li>
+        <li>订单工单映射、物料就绪、换型记录、首检结果的版本化留痕</li>
+        <li>质量签核关卡、兜底转人工、审计日志</li>
+        <li>交期变更影响清单（不改报价与合同）</li>
+      </ul>
+
+      <h3>4.2 范围外（Out of Scope）</h3>
+      <ul>
+        <li>设备控制（PLC 下发、远程启停、参数修改）——明确禁止</li>
+        <li>修改销售报价与采购合同</li>
+        <li>覆盖 CNC 三号线以外的产线（首期）</li>
+        <li>自动生效计划（AI 建议不直接下发工单）</li>
+        <li>客户图纸进入外部模型（工艺参数只向授权班组开放）</li>
+      </ul>
+
+      <h3>4.3 需求规格表（核心规格）</h3>
+      <table>
+        <thead><tr><th>规格编号</th><th>需求名称</th><th>规格描述</th><th>验收口径</th></tr></thead>
+        <tbody>
+          <tr><td>SPEC-01</td><td>订单工单映射</td><td>ERP 订单号与 MES 工单号建立稳定关联表，一单可拆多工单</td><td>主编号、事件时间、来源、版本四字段完整</td></tr>
+          <tr><td>SPEC-02</td><td>唯一日计划版本</td><td>每日上午出一版，插单走变更单并留痕，旧版自动作废</td><td>现场只执行唯一生效版本</td></tr>
+          <tr><td>SPEC-03</td><td>排产前置信号</td><td>物料齐套、换型时长、设备状态作为排产必带字段</td><td>三信号任一缺失则该单不排入可执行计划</td></tr>
+          <tr><td>SPEC-04</td><td>可解释排产建议</td><td>每条建议说明卡在哪条约束、哪张订单让步</td><td>调度会可向销售/客户解释</td></tr>
+          <tr><td>SPEC-05</td><td>人工复核关卡</td><td>AI 结果须显示原记录，未经确认不得覆盖</td><td>插单/缺料/换型/首检未过先由计划员核对</td></tr>
+          <tr><td>SPEC-06</td><td>质量签核</td><td>计划上线须质量主管签核，签风险判断非背书结果</td><td>签核节点、签核人、签核内容明确</td></tr>
+          <tr><td>SPEC-07</td><td>兜底转人工</td><td>六类场景停止自动建议并标明原因、接手人、确认时间</td><td>接手人、时限、记录位置明确</td></tr>
+          <tr><td>SPEC-08</td><td>审计留痕</td><td>保留版本、建议内容、人工修正、签核人，可重建当次处理</td><td>日志不记口令与非必要个人信息</td></tr>
+          <tr><td>SPEC-09</td><td>交期变更影响清单</td><td>交期变更时输出受影响订单清单</td><td>清单颗粒度、出具时点明确</td></tr>
+          <tr><td>SPEC-10</td><td>数据刷新</td><td>试点数据 15 分钟刷新，原文按版本同步</td><td>超周期标注待刷新，历史快照不冒充当前</td></tr>
+        </tbody>
+      </table>
+
+      <h3>4.4 需求追溯矩阵</h3>
+      <p>追溯矩阵建立"需求 → 来源 → 负责人 → 验收指标"的闭环，确保每条需求可追溯、可验证。</p>
+      <table>
+        <thead><tr><th>需求编号</th><th>需求名称</th><th>访谈来源</th><th>责任人</th><th>关联验收指标</th></tr></thead>
+        <tbody>
+          <tr><td>REQ-1</td><td>补齐物料与换型信号</td><td>f51/f12/f10/f11</td><td>唐映秋（待确认）</td><td>延误归因分布</td></tr>
+          <tr><td>REQ-2</td><td>唯一日计划版本与插单留痕</td><td>f01/f21/f20</td><td>唐映秋</td><td>版本一致性</td></tr>
+          <tr><td>REQ-3</td><td>订单工单映射</td><td>f30/f31/f33</td><td>秦芮</td><td>映射完整率</td></tr>
+          <tr><td>REQ-4</td><td>AI 建议+人工复核</td><td>f22/f15/f42/f44</td><td>唐映秋+傅景签核</td><td>未确认不覆盖</td></tr>
+          <tr><td>REQ-5</td><td>兜底转人工</td><td>f44/f35/f25</td><td>傅景牵头</td><td>响应时限</td></tr>
+          <tr><td>REQ-6</td><td>交期影响清单与口径</td><td>f50/f52/f53</td><td>叶书</td><td>准交率/首检率口径</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s5">五、验收标准清单</h2>
+
+      <h3>5.1 核心业务指标（硬指标）</h3>
+      <table>
+        <thead><tr><th>指标</th><th>基线</th><th>目标</th><th>口径说明</th><th>验收责任</th></tr></thead>
+        <tbody>
+          <tr><td>准时交付率</td><td>78%</td><td>≥92%</td><td>分母/周期/排除规则由业务负责人固定</td><td>顾明岚</td></tr>
+          <tr><td>首检合格率</td><td>—</td><td>≥98%</td><td>提升同时不得下降</td><td>傅景</td></tr>
+          <tr><td>返工率</td><td>—</td><td>不上升</td><td>排产优化不能带来质量波动</td><td>顾明岚</td></tr>
+        </tbody>
+      </table>
+      <p>上述三项指标的分母、统计周期、排除规则尚未核实，须由业务负责人书面固定后，方可用于 4 周试点验收。</p>
+
+      <h3>5.2 功能验收清单</h3>
+      <table>
+        <thead><tr><th>验收项</th><th>验收标准</th><th>验证方法</th></tr></thead>
+        <tbody>
+          <tr><td>订单工单映射</td><td>映射表可抽样校验，主编号/事件时间/来源/版本四字段完整</td><td>抽样校验，缺关键字段进人工修复队列</td></tr>
+          <tr><td>唯一日计划版本</td><td>现场只执行唯一生效版本，旧版自动作废</td><td>检查现场流转版本唯一性</td></tr>
+          <tr><td>排产前置信号</td><td>三信号任一缺失，该单不排入可执行计划</td><td>缺料/换型/设备异常场景回放</td></tr>
+          <tr><td>可解释建议</td><td>每条建议能说明卡在哪条约束、哪张订单让步</td><td>历史回放阶段逐条审查</td></tr>
+          <tr><td>人工复核</td><td>未确认结果不能覆盖原记录，记录人工确认时间</td><td>并行试点逐单比对差异</td></tr>
+          <tr><td>质量签核</td><td>计划上线前须签核，签核内容字段齐全</td><td>签核流程走查</td></tr>
+          <tr><td>兜底转人工</td><td>六类场景停止自动建议，标明原因/接手人/时间</td><td>模拟接口失败验证</td></tr>
+          <tr><td>审计留痕</td><td>可重建当次处理，不记口令与不必要个人信息</td><td>日志字段审查</td></tr>
+          <tr><td>数据刷新</td><td>15 分钟刷新，超周期标注待刷新</td><td>检查快照时间戳与版本</td></tr>
+        </tbody>
+      </table>
+
+      <h3>5.3 验收流程与停止条件</h3>
+      <ul>
+        <li>验收分两阶段：历史回放阶段（看到每条建议可解释）→ 并行试点阶段（与人工计划逐单比对）</li>
+        <li>停止条件：若 4 周内出现插单导致交付率或返工率劣化，或质量主管行使风险否决权，试点立即叫停</li>
+        <li>记录要求：各部门完成时间分别记录，不能用消息发送量代替实际完成量</li>
+      </ul>
+
+      <h3>5.4 验收前置（待核实清单）</h3>
+      <ol>
+        <li>延误订单中缺料、换型、设备异常、插单各占多少（唐映秋确认归因口径）</li>
+        <li>订单工单映射表两周内能否建出、抽样完整率（秦芮出数据基线报告）</li>
+        <li>质量签核是系统强制卡点还是流程约定、签核字段（傅景确认）</li>
+        <li>兜底触发是系统自动拦截还是人工发现、响应时限（傅景+唐映秋对齐）</li>
+        <li>换型 45 分钟是否含在 70 分钟停机内（口径确认）</li>
+        <li>试点预算 24 万中接口/培训/复核/维护各占多少（顾明岚确认）</li>
+      </ol>
+
+      <h2 id="s6">六、风险与约束</h2>
+      <table>
+        <thead><tr><th>风险</th><th>等级</th><th>应对</th></tr></thead>
+        <tbody>
+          <tr><td>工艺参数/客户图纸外流</td><td>高</td><td>只引用受控参数，图纸不进外部模型，傅景否决权</td></tr>
+          <tr><td>AI 建议直接生效</td><td>高</td><td>AI 只提建议，人工复核+质量签核，不开放设备控制</td></tr>
+          <tr><td>数据基线缺失</td><td>高</td><td>前两周补齐数据基线，缺关键字段进人工修复队列，不猜值补齐</td></tr>
+          <tr><td>兜底无接手人</td><td>中</td><td>梳理兜底场景清单，逐项指定接手岗位与确认时限</td></tr>
+          <tr><td>口径不一致</td><td>中</td><td>业务负责人书面固定准交率/首检率口径</td></tr>
+          <tr><td>预算超支</td><td>中</td><td>四项成本单列，节省额只算可验证部分</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s7">七、结论与下一步</h2>
+
+      <h3>7.1 结论</h3>
+      <p>本项目的切入点是先补齐订单工单映射、物料就绪、换型信号与唯一日计划版本，再谈 AI 排产建议；直接追求设备满负荷与"先保关键客户交期"的目标相冲突。质量签核、权限与兜底为不可逆风险，应优先于效率收益。</p>
+
+      <h3>7.2 下一步行动</h3>
+      <ol>
+        <li>与傅景、唐映秋确认签核节点与拦截方式</li>
+        <li>秦芮出订单工单映射表原型与数据基线报告</li>
+        <li>叶书与唐映秋确认交期变更影响清单模板与出具时点</li>
+        <li>业务负责人书面固定两项指标口径</li>
+        <li>用历史订单回放，按缺料/换型/设备异常/插单四类归因延误单</li>
+        <li>在 CNC 三号线并行试点中验证未确认结果不能覆盖原记录</li>
+      </ol>
+    </main>
+  </section>
+</body>
+</html>

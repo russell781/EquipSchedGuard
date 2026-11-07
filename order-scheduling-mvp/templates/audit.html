@@ -1,0 +1,113 @@
+{% extends "base_admin.html" %}
+{% block title %}对话审计{% endblock %}
+{% block crumb %}对话审计 · 筛选与违规标记{% endblock %}
+{% block content %}
+<style>
+  .filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .conv-detail { background: #f8fafd; border-radius: 8px; padding: 14px 16px; margin-top: 8px; }
+  .m-line { margin-bottom: 10px; font-size: 13px; line-height: 1.7; }
+  .m-line .r { font-weight: 600; color: #1f3864; }
+  .m-line.user .r { color: #1e8e5a; }
+  .m-src { font-size: 12px; color: #889; margin-left: 16px; }
+</style>
+
+<div class="card">
+  <div class="filters">
+    <select id="fEmployee"><option value="">全部员工</option></select>
+    <input type="date" id="fFrom" title="开始日期">
+    <input type="date" id="fTo" title="结束日期">
+    <label class="muted"><input type="checkbox" id="fFlagged"> 仅看疑似违规</label>
+    <button class="btn" onclick="loadConvs()">查询</button>
+  </div>
+</div>
+
+<div class="card">
+  <h3>对话记录 <span class="muted" id="totalTip"></span></h3>
+  <table class="grid">
+    <thead><tr>
+      <th>员工</th><th>会话标题</th><th>消息数</th><th>最近时间</th><th>标记</th><th style="width:230px;">操作</th>
+    </tr></thead>
+    <tbody id="convBody"><tr><td colspan="6" class="muted">加载中…</td></tr></tbody>
+  </table>
+  <div id="detailBox"></div>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+let currentDetail = null;  // 当前展开的会话 ID
+
+// 初始化员工下拉
+async function loadEmployees() {
+  const d = await (await api("/admin/audit/employees")).json();
+  document.getElementById("fEmployee").innerHTML =
+    '<option value="">全部员工</option>' +
+    d.items.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join("");
+}
+
+// 按筛选条件加载对话列表
+async function loadConvs() {
+  const p = new URLSearchParams({
+    employee_id: document.getElementById("fEmployee").value,
+    date_from: document.getElementById("fFrom").value,
+    date_to: document.getElementById("fTo").value,
+    flagged_only: document.getElementById("fFlagged").checked
+  });
+  const d = await (await api("/admin/audit/conversations?" + p)).json();
+  document.getElementById("totalTip").textContent = `共 ${d.total} 条`;
+  document.getElementById("convBody").innerHTML = d.items.length
+    ? d.items.map(c => `<tr>
+        <td>${esc(c.employee)}</td>
+        <td>${esc(c.title)}</td>
+        <td>${c.msg_count}</td>
+        <td class="muted">${esc(c.updated_at.slice(0, 19).replace("T", " "))}</td>
+        <td>${c.is_flagged ? '<span class="tag red">疑似违规</span>' : "-"}</td>
+        <td>
+          <button class="btn light" onclick="toggleDetail('${c.id}')">查看</button>
+          ${c.is_flagged
+            ? `<button class="btn light" onclick="unflag('${c.id}')">取消标记</button>`
+            : `<button class="btn danger" onclick="flag('${c.id}')">标记违规</button>`}
+        </td>
+      </tr>
+      ${c.is_flagged && c.flag_remark ? `<tr><td colspan="6" class="muted">标记备注：${esc(c.flag_remark)}</td></tr>` : ""}
+    `).join("")
+    : '<tr><td colspan="6" class="muted">无符合条件的记录</td></tr>';
+  document.getElementById("detailBox").innerHTML = "";
+  currentDetail = null;
+}
+
+// 展开/收起会话消息详情
+async function toggleDetail(id) {
+  const box = document.getElementById("detailBox");
+  if (currentDetail === id) { box.innerHTML = ""; currentDetail = null; return; }
+  currentDetail = id;
+  const d = await (await api(`/admin/audit/conversations/${id}/messages`)).json();
+  box.innerHTML = '<div class="conv-detail">' + d.items.map(m => `
+    <div class="m-line ${m.role}">
+      <span class="r">${m.role === "user" ? "员工" : "助手"}：</span>${esc(m.content)}
+      ${(m.sources || []).map(s => `<div class="m-src">📄 《${esc(s.doc_name)}》 ${esc(s.snippet.slice(0, 60))}…</div>`).join("")}
+    </div>`).join("") + "</div>";
+}
+
+// 标记疑似违规报销问答（填写备注）
+async function flag(id) {
+  const remark = prompt("请填写标记备注（如：疑似编造报销标准）", "");
+  if (remark === null) return;
+  const resp = await api(`/admin/audit/conversations/${id}/flag`,
+    { method: "POST", body: JSON.stringify({ remark }) });
+  if (!resp.ok) { showError((await resp.json()).message); return; }
+  showOk("已标记为疑似违规");
+  loadConvs();
+}
+
+// 取消标记
+async function unflag(id) {
+  const resp = await api(`/admin/audit/conversations/${id}/flag`, { method: "DELETE" });
+  if (!resp.ok) { showError((await resp.json()).message); return; }
+  showOk("已取消标记");
+  loadConvs();
+}
+
+loadEmployees();
+loadConvs();
+</script>
+{% endblock %}

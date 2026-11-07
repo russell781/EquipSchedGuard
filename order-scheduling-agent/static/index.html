@@ -106,6 +106,19 @@ let token = localStorage.getItem("token") || "";   // JWT，刷新后保持登�
 let sessionId = null;                              // 当前会话 ID
 let sending = false;                               // 是否正在等待回答（防重复发送）
 
+// 分享鉴权参数：线上部署链接带 ?sharecode=xxx，相对路径请求会丢失，
+// 需手动提取并在每个 API 请求中携带，否则被分享鉴权层拦截（「链接不完整」）。
+const _qs = new URLSearchParams(location.search);
+const SHARECODE = _qs.get("sharecode") || "";
+if (SHARECODE) localStorage.setItem("sharecode", SHARECODE);
+const _sc = SHARECODE || localStorage.getItem("sharecode") || "";
+
+// 给路径附加 sharecode 查询参数（保留路径中已有的 ? 或 &）
+function withSharecode(path) {
+  if (!_sc) return path;
+  return path + (path.includes("?") ? "&" : "?") + "sharecode=" + encodeURIComponent(_sc);
+}
+
 /* ================= 通用工具 ================= */
 // 顶部错误提示条，3 秒自动消失
 function showError(msg) {
@@ -116,19 +129,20 @@ function showError(msg) {
 }
 
 // 带鉴权的 fetch 封装；401 时跳回登录
+// 注意：部署平台的网关会改写 Authorization 头，因此业务令牌走自定义头 X-Auth-Token
 async function api(path, options = {}) {
   options.headers = Object.assign({
     "Content-Type": "application/json",
-    "Authorization": "Bearer " + token
+    "X-Auth-Token": token
   }, options.headers || {});
-  const resp = await fetch(API + path, options);
+  const resp = await fetch(withSharecode(API + path), options);
   if (resp.status === 401) { logout(); throw new Error("登录已过期，请重新登录"); }
   return resp;
 }
 
 /* ================= 登录 / 退出 ================= */
 async function login() {
-  const resp = await fetch(API + "/auth/login", {
+  const resp = await fetch(withSharecode(API + "/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

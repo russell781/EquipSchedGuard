@@ -1,0 +1,11 @@
+# 运行产物（部署时沙箱内会自动重建）
+data/
+__pycache__/
+*.pyc
+output/
+.venv/
+venv/
+
+# 编辑器
+.vscode/
+.idea/

@@ -50,6 +50,8 @@
   <div class="brand">订单排产与设备异常<br>智能体系统<small>管理后台 Console</small></div>
   <div class="nav">
     <a href="/admin" class="{{ 'on' if active == 'dashboard' else '' }}">📊 概览</a>
+    <a href="/admin/schedule" class="{{ 'on' if active == 'schedule' else '' }}">🗓️ 排产审批</a>
+    <a href="/admin/plans" class="{{ 'on' if active == 'plans' else '' }}">📋 当日计划</a>
     <a href="/admin/kb" class="{{ 'on' if active == 'kb' else '' }}">📚 制度知识库</a>
     <a href="/admin/prompts" class="{{ 'on' if active == 'prompts' else '' }}">📝 提示词模板</a>
     <a href="/admin/audit" class="{{ 'on' if active == 'audit' else '' }}">🔍 对话审计</a>

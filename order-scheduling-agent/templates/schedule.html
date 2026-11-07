@@ -1,0 +1,115 @@
+{% extends "base_admin.html" %}
+{% block title %}排产审批{% endblock %}
+{% block crumb %}排产审批 · 待审批变更单{% endblock %}
+{% block content %}
+<style>
+  .filters { margin-bottom: 16px; display: flex; gap: 10px; align-items: center; }
+  .filters select { min-width: 160px; }
+  .plan-items { margin: 8px 0 0; padding-left: 0; list-style: none; }
+  .plan-items li { background: #f5f7fb; border-radius: 6px; padding: 6px 10px; margin-bottom: 4px; font-size: 12px; color: #445; }
+  .reasons { font-size: 12px; color: #667; margin-top: 6px; line-height: 1.6; }
+  .actions { white-space: nowrap; }
+  .actions .btn { margin-right: 6px; }
+  .empty { text-align: center; color: #99a; padding: 30px 0; }
+</style>
+
+<div class="card">
+  <div class="filters">
+    <select id="statusFilter" onchange="load()">
+      <option value="">全部状态</option>
+      <option value="PENDING_APPROVAL" selected>待审批</option>
+      <option value="APPROVED">已批准</option>
+      <option value="REJECTED">已驳回</option>
+    </select>
+    <button class="btn light" onclick="load()">刷新</button>
+  </div>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>变更单号</th>
+        <th>订单 / 计划</th>
+        <th>排产策略</th>
+        <th>状态</th>
+        <th>提交时间</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="reqBody">
+      <tr><td colspan="6" class="muted">加载中…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>审批说明</h3>
+  <p class="muted" style="line-height:1.8;">
+    审批同意后，系统会将对应排产草稿写入<b>当日计划</b>并置为生效版本，全程追加式审计留痕；
+    审批拒绝则草稿置为「已驳回」，不产生任何生效计划。审批操作仅限管理员，智能体模型无审批权、无生效权。
+  </p>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+const STATUS_TAG = {
+  "PENDING_APPROVAL": '<span class="tag">待审批</span>',
+  "APPROVED": '<span class="tag green">已批准</span>',
+  "REJECTED": '<span class="tag red">已驳回</span>',
+};
+
+async function load() {
+  const status = document.getElementById("statusFilter").value;
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  const resp = await api("/agent/change-requests" + q);
+  const d = await resp.json();
+  const body = document.getElementById("reqBody");
+  if (!d.items || !d.items.length) {
+    body.innerHTML = '<tr><td colspan="6" class="empty">暂无符合条件的变更单</td></tr>';
+    return;
+  }
+  body.innerHTML = d.items.map(item => {
+    const items = (item.plan_items || []).map(p =>
+      `<li>订单 ${esc(p.order_id || "-")} · 设备 ${esc(p.equipment_id || "-")} · 数量 ${esc(p.quantity ?? "-")} · ${esc(p.start_at || "")}</li>`
+    ).join("");
+    const reason = item.reason || item.explanation || "";
+    const canAct = item.status === "PENDING_APPROVAL";
+    return `<tr>
+      <td>${esc(item.change_request_id)}</td>
+      <td>
+        <ul class="plan-items">${items || "<li class='muted'>无明细</li>"}</ul>
+        <div class="reasons">${esc(reason)}</div>
+      </td>
+      <td>${esc(item.strategy || "-")}</td>
+      <td>${STATUS_TAG[item.status] || esc(item.status)}</td>
+      <td>${esc((item.created_at || "").replace("T", " ").slice(0, 19))}</td>
+      <td class="actions">
+        ${canAct ? `
+          <button class="btn" onclick="act('${esc(item.change_request_id)}','approve')">同意</button>
+          <button class="btn danger" onclick="act('${esc(item.change_request_id)}','reject')">拒绝</button>` : ""}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+async function act(id, action) {
+  const comment = prompt(action === "approve" ? "审批意见（同意）：" : "审批意见（拒绝）：", "");
+  if (comment === null) return;
+  try {
+    const resp = await api(`/agent/change-requests/${id}/${action}`, {
+      method: "POST",
+      body: JSON.stringify({ comment }),
+    });
+    const d = await resp.json();
+    if (resp.ok) {
+      showOk(action === "approve" ? "已批准并生成当日计划" : "已驳回");
+      load();
+    } else {
+      showError(d.message || "操作失败");
+    }
+  } catch (e) {
+    showError("操作失败：" + e.message);
+  }
+}
+
+load();
+</script>
+{% endblock %}

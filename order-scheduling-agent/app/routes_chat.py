@@ -1,15 +1,19 @@
-"""路由：登录、员工问答（SSE 流式）、会话列表与历史消息。"""
+"""路由：登录、员工问答（SSE 流式）、执行循环、会话列表与历史消息。"""
+import asyncio
 import json
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from .agent_loop import AgentLoop
+from .agent_orchestrator import route_skill
 from .config import HISTORY_ROUNDS
 from .database import execute, fetch_all, fetch_one, new_id, now_iso
 from .errors import (AppError, err_forbidden, err_session_not_found, error_body)
 from .llm import stream_chat
 from .prompt_store import render
 from .retrieval import search
+from .routes_agent import get_agent_service
 from .schemas import ChatIn, LoginIn
 from .security import create_token, login_required, verify_password
 
@@ -93,6 +97,40 @@ async def chat(body: ChatIn, user: dict = Depends(login_required)):
 
             # 3) 检索制度片段（检索失败时发送 error 帧并终止）
             sources = search(question)
+
+            # 3.5) 智能体执行循环：先用意图路由判断是否命中排产/设备操作意图。
+            #      命中则走受约束的决策循环（快照→校验→建草稿前人工确认→仿真→结果校验→提交审批）；
+            #      未命中（纯制度问答）走下方原 RAG 流程，不进入循环。
+            if route_skill(question) is not None:
+                loop = AgentLoop(get_agent_service(), max_rounds=8)
+                loop_result = await asyncio.to_thread(
+                    loop.run, question, user["id"], session_id)
+                answer = loop_result.get("text", "")
+                if loop_result.get("status") == "AWAITING_CONFIRMATION":
+                    preview = loop_result.get("draft_preview", {})
+                    answer = (
+                        "检测到需要创建排产草稿，请先确认以下草稿内容：\n"
+                        + json.dumps(preview, ensure_ascii=False, indent=2)
+                        + "\n\n确认后系统才会继续仿真、校验并提交审批；"
+                        "确认令牌：" + loop_result.get("pending_token", "")
+                    )
+                for i in range(0, len(answer), 24):
+                    chunk = answer[i:i + 24]
+                    answer_parts.append(chunk)
+                    yield sse_frame("token", {"text": chunk})
+                await execute(
+                    "INSERT INTO messages(id, conversation_id, role, content, kb_refs, created_at)"
+                    " VALUES(?,?,?,?,?,?)",
+                    (message_id, session_id, "assistant", "".join(answer_parts),
+                     json.dumps(loop_result.get("sources", []), ensure_ascii=False), now_iso()))
+                yield sse_frame("sources", {"items": loop_result.get("sources", [])})
+                yield sse_frame("done", {
+                    "finish_reason": "stop",
+                    "agent_status": loop_result.get("status"),
+                    "rounds": loop_result.get("rounds", []),
+                    "pending_token": loop_result.get("pending_token"),
+                })
+                return
 
             # 4) 组装大模型消息：系统提示词从数据库当前生效模板渲染（含制度条文注入），
             #    再加最近 6 轮历史与当前问题

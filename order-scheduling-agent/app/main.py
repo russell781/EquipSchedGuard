@@ -12,6 +12,7 @@ from .kb_store import seed_from_files
 from .prompt_store import seed_default_template
 from .retrieval import load_documents
 from .routes_admin import router as admin_router
+from .routes_agent import get_agent_service, router as agent_router
 from .routes_chat import router as chat_router
 from .routes_pages import router as pages_router
 
@@ -25,6 +26,7 @@ async def lifespan(_: FastAPI):
     await seed_default_template()   # 提示词表为空时写入默认模板
     await seed_from_files()         # 知识库为空时导入 knowledge_base/ 示例制度
     await load_documents()          # 从数据库加载切片向量到内存
+    get_agent_service()             # 初始化智能体工具状态表（快照/凭证/决策日志/审计）
     yield
 
 
@@ -34,8 +36,9 @@ app = FastAPI(title="订单排产与设备异常智能体系统",
 # 统一错误格式（AppError / 参数校验 / 兜底异常）
 register_exception_handlers(app)
 
-# 业务路由：员工问答 / 管理后台 API / 服务端渲染页面
+# 业务路由：员工问答 / 智能体工具与执行循环 / 管理后台 API / 服务端渲染页面
 app.include_router(chat_router)
+app.include_router(agent_router)
 app.include_router(admin_router)
 app.include_router(pages_router)
 

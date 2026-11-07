@@ -1,6 +1,7 @@
 """SQLite 数据访问层：建表、种子数据与通用增删查封装。"""
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import aiosqlite
 
@@ -20,6 +21,8 @@ def new_id() -> str:
 
 async def connect() -> aiosqlite.Connection:
     """打开数据库连接（调用方负责关闭）。"""
+    # 确保数据库所在目录存在（全新环境首次启动时 data/ 尚不存在）
+    Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     db = await aiosqlite.connect(DB_PATH)
     db.row_factory = aiosqlite.Row  # 查询结果可按列名访问
     await db.execute("PRAGMA foreign_keys = ON")  # 开启外键约束
